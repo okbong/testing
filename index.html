@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+canvas {
+    border:1px solid;
+    background-color: lightgray;
+}
+</style>
+</head>
+<body onload=" myGameArea.start()">
+
+<p>You last <span id="lasttime"></span></p>
+<canvas id="myCanvas" width="480" height="270"></canvas>
+<p>
+<button id='btn' onmousedown="accelerate(-0.2)" onmouseup="accelerate(0.05)">Jump</button>
+</p>
+</body>
+
+</html>
+
+<script>
+
+//https://www.w3schools.com/graphics/tryit.asp?filename=trygame_default_gravity
+//http://ellisonleao.github.io/clumsy-bird/ 
+
+var myObstacles = [];	
+var myBird;
+
+var myGameArea = {
+	canvas: document.getElementById('myCanvas'),
+	start : function() {
+		this.context = this.canvas.getContext("2d");
+
+//		var cmp=new component(10, 80, "green", 50, 0);
+//		cmp.update();
+		
+		
+		myBird = new component(150, 50, 30, 30, "red");
+		myBird.gravity = 0.05;
+		
+		
+		setInterval(updateGameArea, 20);
+	},
+	frameNo: 0,
+	clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+};
+
+
+function component(x, y, width, height, color) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    
+	this.speedX = 0;
+    this.speedY = 0;    
+    this.gravity = 0;
+    this.gravitySpeed = 0;
+	
+    this.update = function() {
+        ctx = myGameArea.context;
+        ctx.fillStyle = color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+	
+    this.newPos = function() {
+        this.gravitySpeed += this.gravity;
+        this.x += this.speedX;
+        this.y += this.speedY + this.gravitySpeed;
+        this.hitBottom();
+		this.hitTop();
+    }
+	
+    this.hitBottom = function() {
+        if ((this.y + this.height) > myGameArea.canvas.height) {
+            this.y = myGameArea.canvas.height - this.height;
+            this.gravitySpeed = 0;
+        }
+    }
+	
+    this.hitTop = function() {
+        if ((this.y) < 1) {
+            this.y = 1;
+            this.gravitySpeed = 0;
+        }
+    }
+
+	
+    this.crashWith = function(otherobj) {
+        var myleft = this.x;
+        var myright = this.x + (this.width);
+        var mytop = this.y;
+        var mybottom = this.y + (this.height);
+		
+        var otherleft = otherobj.x;
+        var otherright = otherobj.x + (otherobj.width);
+        var othertop = otherobj.y;
+        var otherbottom = otherobj.y + (otherobj.height);
+		
+        var crash = true;
+        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+            crash = false;
+        }
+        return crash;
+    }
+	
+}
+
+function updateGameArea() {
+	var x, height, gap;
+    for (i = 0; i < myObstacles.length; i += 1) {
+        if (myBird.crashWith(myObstacles[i])) {
+            return;
+        } 
+    }
+    myGameArea.clear();
+    myGameArea.frameNo += 1;
+	if (myGameArea.frameNo == 1 || ((myGameArea.frameNo/150)%1)==0 ) {
+        height = (myGameArea.canvas.height/8)*Math.floor(Math.random()*8);
+		gap = 200;
+        myObstacles.push(new component(myGameArea.canvas.width, 0, 10, height, "blue"));
+        myObstacles.push(new component(myGameArea.canvas.width, height + gap, 10, myGameArea.canvas.height - height - gap, "blue"));
+    }
+	
+    for (i = 0; i < myObstacles.length; i += 1) {
+        myObstacles[i].x += -1;
+        myObstacles[i].update();
+    }
+	
+	document.getElementById('lasttime').innerText= (myGameArea.frameNo/50)+' sec';
+    myBird.newPos();
+    myBird.update();
+}
+
+function accelerate(n) {
+    myBird.gravity = n;
+}
+
+document.body.onkeyup = function(e){
+    if(e.keyCode == 32){
+        accelerate(0.05);
+    }
+}
+
+document.body.onkeydown = function(e){
+    if(e.keyCode == 32){
+        accelerate(-0.02);
+    }
+}
+
+myGameArea.canvas.addEventListener('mouseup',function(e){
+	accelerate(0.05);
+});
+
+myGameArea.canvas.addEventListener('mousedown',function(e){
+    accelerate(-0.02);
+});
+
+document.body.addEventListener('mousedown',function(e){
+	console.log('body mousedown');
+	e.stopPropagation();
+});
+</script>
